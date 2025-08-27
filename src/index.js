@@ -1,121 +1,150 @@
-const url = 'https://api.openai.com/v1/audio/transcriptions'
+const url = 'https://api.openai.com/v1/audio/transcriptions';
 
-const transcribe = (apiKey, file, language, response_format) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('model', 'whisper-1')
-    formData.append('response_format', response_format || 'verbose_json')
-    if (language) {
-        formData.append('language', language)
-    }
+// בונה prompt אוטומטי לפי ההקשר שהמשתמש נתן
+function buildPromptFromContext(contextStr) {
+  if (!contextStr || !contextStr.trim()) return '';
+  const ctx = contextStr.trim();
 
-    const headers = new Headers()
-    headers.append('Authorization', `Bearer ${apiKey}`)
-
-    return fetch(url, {
-        method: 'POST',
-        body: formData,
-        headers: headers
-    }).then(response => {
-        console.log(response)
-        // Automatically handle response format
-        if (response_format === 'json' || response_format === 'verbose_json') {
-            return response.json()
-        } else {
-            return response.text()
-        }
-    }).catch(error => console.error(error))
+  return `
+טקסט תורני/שיעור בעברית. אנא העדף כתיב תקין של שמות ומונחים תורניים.
+ההקשר: ${ctx}.
+מונחים נפוצים לשימור כתיב נכון: ליקוטי מוהר"ן; רבי נחמן מברסלב; רבי שמעון בר יוחאי; ספר הזוהר; פנימיות התורה; חיצוניות התורה; האר"י; הבעל שם טוב; בעל התניא; השגחה פרטית; "לית אתר פנוי מיניה"; ספירות; מלכות; חסידות; קבלה; תורה א; תורה ב; כרם ביבנה; גאולה; ברחמים.
+אם יש ספקי שמות – השאר בעברית תקנית וציין כפי שנשמע.
+`.trim();
 }
 
+// שליחת בקשה ל-API
+const transcribe = async (apiKey, file, language, response_format, contextStr) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('model', 'whisper-1');
 
-const hideStartView = () => {
-    document.querySelector('#start-view').classList.add('hidden')
-}
+  // קיבוע עברית כברירת מחדל אם לא נבחרה שפה
+  const lang = language && language.length ? language : 'he';
+  formData.append('language', lang);
 
-const showStartView = () => {
-    document.querySelector('#start-view').classList.remove('hidden')
-}
+  // טמפרטורה נמוכה = תוצאה יותר שמרנית
+  formData.append('temperature', '0');
 
-const setupAPIKeyInput = () => {
-    const element = document.querySelector('#api-key')
-    const savedAPIKey = localStorage.getItem('api-key') || ''
-    element.value = savedAPIKey
-    element.addEventListener('input', () => {
-        const key = element.value
-        console.log('saving:', key)
-        localStorage.setItem('api-key', key)
-        if (key) {
-            hideStartView()
-        } else {
-            showStartView()
-        }
-    })
+  // Prompt מההקשר
+  const prompt = buildPromptFromContext(contextStr);
+  if (prompt) formData.append('prompt', prompt);
 
-    if (savedAPIKey) {
-        hideStartView()
-    }
-}
+  // פורמט פלט
+  const fmt = response_format || 'verbose_json';
+  formData.append('response_format', fmt);
 
+  const headers = new Headers();
+  headers.append('Authorization', `Bearer ${apiKey}`);
 
-const updateTextareaSize = (element) => {
-    element.style.height = 0
+  const res = await fetch(url, {
+    method: 'POST',
+    body: formData,
+    headers
+  });
 
-    const style = window.getComputedStyle(element)
-    const paddingTop = parseFloat(style.getPropertyValue('padding-top'))
-    const paddingBottom = parseFloat(style.getPropertyValue('padding-bottom'))
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '');
+    throw new Error(`שגיאת API ${res.status}:\n${txt}`);
+  }
 
-    const height = element.scrollHeight - paddingTop - paddingBottom
+  if (fmt === 'json' || fmt === 'verbose_json') {
+    return res.json();
+  } else {
+    return res.text();
+  }
+};
 
-    element.style.height = `${height}px`
-}
+// עוזרים לסטטוס/פלט
+let outputElement;
 
-let outputElement
-
-const setTranscribingMessage = (text) => {
-    outputElement.innerHTML = text
-}
+const setStatus = (msg) => {
+  const div = document.getElementById('status');
+  if (div) div.textContent = msg;
+};
 
 const setTranscribedPlainText = (text) => {
-    // outputElement.innerText creates unnecessary <br> elements
-    text = text.replaceAll('&', '&amp;')
-    text = text.replaceAll('<', '&lt;')
-    text = text.replaceAll('>', '&gt;')
-    outputElement.innerHTML = `<pre>${text}</pre>`
-}
+  text = text.replaceAll('&', '&amp;')
+             .replaceAll('<', '&lt;')
+             .replaceAll('>', '&gt;');
+  outputElement.innerHTML = `<pre>${text}</pre>`;
+};
 
 const setTranscribedSegments = (segments) => {
-    outputElement.innerHTML = ''
-    for (const segment of segments) {
-        const element = document.createElement('div')
-        element.classList.add('segment')
-        element.innerText = segment.text
-        outputElement.appendChild(element)
+  outputElement.innerHTML = '';
+  for (const segment of segments) {
+    const element = document.createElement('div');
+    element.classList.add('segment');
+    element.innerText = segment.text;
+    outputElement.appendChild(element);
+  }
+};
+
+// API key handling
+const hideStartView = () => {
+  document.querySelector('#start-view').classList.add('hidden');
+};
+
+const showStartView = () => {
+  document.querySelector('#start-view').classList.remove('hidden');
+};
+
+const setupAPIKeyInput = () => {
+  const element = document.querySelector('#api-key');
+  const savedAPIKey = localStorage.getItem('api-key') || '';
+  element.value = savedAPIKey;
+  element.addEventListener('input', () => {
+    const key = element.value;
+    localStorage.setItem('api-key', key);
+    if (key) {
+      hideStartView();
+    } else {
+      showStartView();
     }
-}
+  });
 
+  if (savedAPIKey) {
+    hideStartView();
+  }
+};
+
+// Event listeners
 window.addEventListener('load', () => {
-    setupAPIKeyInput()
-    outputElement = document.querySelector('#output')
+  setupAPIKeyInput();
+  outputElement = document.querySelector('#output');
 
-    const fileInput = document.querySelector('#audio-file')
-    fileInput.addEventListener('change', () => {
-        setTranscribingMessage('Transcribing...')
+  const fileInput = document.querySelector('#audio-file');
+  fileInput.addEventListener('change', async () => {
+    setStatus('⏳ מתמלל... (העלאה + עיבוד)');
 
-        const apiKey = localStorage.getItem('api-key')
-        const file = fileInput.files[0]
-        const language = document.querySelector('#language').value
-        const response_format = document.querySelector('#response_format').value
-        const response = transcribe(apiKey, file, language, response_format)
+    const apiKey = localStorage.getItem('api-key');
+    const file = fileInput.files[0];
+    const language = document.querySelector('#language').value;
+    const response_format = document.querySelector('#response_format').value;
+    const contextStr = (document.querySelector('#context')?.value || '').trim();
 
-        response.then(transcription => {
-            if (response_format === 'verbose_json') {
-                setTranscribedSegments(transcription.segments)
-            } else {
-                setTranscribedPlainText(transcription)
-            }
+    try {
+      const transcription = await transcribe(apiKey, file, language, response_format, contextStr);
 
-            // Allow multiple uploads without refreshing the page
-            fileInput.value = null
-        })
-    })
-})
+      if (response_format === 'verbose_json') {
+        if (transcription.segments && transcription.segments.length) {
+          setTranscribedSegments(transcription.segments);
+        } else if (transcription.text) {
+          setTranscribedPlainText(transcription.text);
+        } else {
+          setTranscribedPlainText(JSON.stringify(transcription, null, 2));
+        }
+      } else {
+        setTranscribedPlainText(transcription);
+      }
+
+      setStatus('✅ הסתיים');
+    } catch (err) {
+      console.error(err);
+      setStatus('❌ שגיאה');
+      setTranscribedPlainText(err.message || String(err));
+    } finally {
+      fileInput.value = null; // מאפשר העלאה נוספת בלי ריענון
+    }
+  });
+});
