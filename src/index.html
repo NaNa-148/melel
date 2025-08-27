@@ -1,108 +1,135 @@
 <!doctype html>
 <html lang="he" dir="rtl">
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-        <title>Transcribe</title>
-        <link rel="stylesheet" href="style.css" type="text/css">
-        <script src="index.js"></script>
-    </head>
-    <body>
-        <div class="container">
-            OpenAI API key:
-            <input type="text" id="api-key" placeholder="sk-xxxx">
-            <div class="disclaimer">The API key is only sent to Open AI directly. It is saved to your browser's localStorage.</div>
-            <div id="start-view">
-                Start by <a href="https://platform.openai.com/account/api-keys" target="_blank">getting an API key</a> from OpenAI.
-                <div class="disclaimer">OpenAI documentation says "Do not share your API key with others, or expose it in the browser or other client-side code." This means that if you are <strong>building</strong> a web app, you should not leak the service's API key to your users.</div>
-            </div>
-            <form id="upload-form">
-                <!-- https://platform.openai.com/docs/guides/speech-to-text/supported-languages -->
-                <div class="field">
-  <label for="context">שם הספר / התורה (אופציונלי)</label>
-  <input type="text" id="context" placeholder='למשל: ליקוטי מוהר"ן, תורה א'>
-  <div class="hint">אם תמלא—נבנה אוטומטית הקשר עשיר לשמות/מונחים (משפר דיוק).</div>
-</div>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>תמלול עברית – Whisper</title>
+    <link rel="stylesheet" href="style.css" type="text/css">
+    <script defer src="index.js"></script>
+  </head>
+  <body>
+    <div class="container">
+      <h1>תמלול אודיו (OpenAI Whisper)</h1>
 
-                <select name="language" id="language">
-                    <option value="" selected>Automatic language (slower)</option>
-                    <option value="en">English</option>
-                    <option value="af">Afrikaans</option>
-                    <option value="ar">Arabic</option>
-                    <option value="hy">Armenian</option>
-                    <option value="az">Azerbaijani</option>
-                    <option value="be">Belarusian</option>
-                    <option value="bs">Bosnian</option>
-                    <option value="bg">Bulgarian</option>
-                    <option value="ca">Catalan</option>
-                    <option value="zh">Chinese</option>
-                    <option value="hr">Croatian</option>
-                    <option value="cs">Czech</option>
-                    <option value="da">Danish</option>
-                    <option value="nl">Dutch</option>
-                    <option value="et">Estonian</option>
-                    <option value="fi">Finnish</option>
-                    <option value="fr">French</option>
-                    <option value="gl">Galician</option>
-                    <option value="de">German</option>
-                    <option value="el">Greek</option>
-                    <option value="he" selected>Hebrew</option>
-                    <option value="hi">Hindi</option>
-                    <option value="hu">Hungarian</option>
-                    <option value="is">Icelandic</option>
-                    <option value="id">Indonesian</option>
-                    <option value="it">Italian</option>
-                    <option value="ja">Japanese</option>
-                    <option value="kn">Kannada</option>
-                    <option value="kk">Kazakh</option>
-                    <option value="ko">Korean</option>
-                    <option value="lv">Latvian</option>
-                    <option value="lt">Lithuanian</option>
-                    <option value="mk">Macedonian</option>
-                    <option value="ms">Malay</option>
-                    <option value="mr">Marathi</option>
-                    <option value="mi">Maori</option>
-                    <option value="ne">Nepali</option>
-                    <option value="no">Norwegian</option>
-                    <option value="fa">Persian</option>
-                    <option value="pl">Polish</option>
-                    <option value="pt">Portuguese</option>
-                    <option value="ro">Romanian</option>
-                    <option value="ru">Russian</option>
-                    <option value="sr">Serbian</option>
-                    <option value="sk">Slovak</option>
-                    <option value="sl">Slovenian</option>
-                    <option value="es">Spanish</option>
-                    <option value="sw">Swahili</option>
-                    <option value="sv">Swedish</option>
-                    <option value="tl">Tagalog</option>
-                    <option value="ta">Tamil</option>
-                    <option value="th">Thai</option>
-                    <option value="tr">Turkish</option>
-                    <option value="uk">Ukrainian</option>
-                    <option value="ur">Urdu</option>
-                    <option value="vi">Vietnamese</option>
-                    <option value="cy">Welsh</option>
-                </select>
-                <br />
-                <select id="response_format" name="response_format">
-                    <option value="verbose_json" selected>Normal text</option>
-                    <option value="srt">SRT</option>
-                    <option value="vtt">VTT</option>
-                </select><br />
-                <br>
-                <label for="audio-file" class="button">Choose an audio file</label>
-                <input type="file" accept="audio/mp3, audio/mp4, audio/mpeg, audio/mpga, audio/m4a, audio/wav, audio/webm, video/mp4, video/mpeg, video/webm" id="audio-file" name="file" style="visibility:hidden;">
-              </form>
-            <div id="output"></div>
-            <footer>
-                <a href="https://platform.openai.com/account/usage" target="_blank">Your usage</a>
-                &middot;
-                <a href="https://github.com/felixbade/transcribe" target="_blank">Source code</a>
-                &middot;
-                <a href="https://github.com/felixbade/transcribe/issues" target="_blank">Feature request</a>
-            </footer>
+      <label for="api-key">OpenAI API key:</label>
+      <input type="text" id="api-key" placeholder="sk-xxxx">
+      <div class="disclaimer">
+        ה־API Key נשמר רק מקומית ב־localStorage בדפדפן שלך ונשלח ישירות ל־api.openai.com.
+      </div>
+
+      <div id="start-view">
+        מתחילים מ־
+        <a href="https://platform.openai.com/account/api-keys" target="_blank" rel="noopener">קבלת API Key</a>
+        ב־OpenAI.
+        <div class="disclaimer">
+          (אם אתה בונה אפליקציה לציבור – אל תחשוף את המפתח שלך לצד לקוח; לכל משתמש כדאי להזין מפתח משלו.)
         </div>
-    </body>
+      </div>
+
+      <form id="upload-form">
+        <!-- הקשר קצר שממנו נבנה אוטומטית prompt -->
+        <div class="field">
+          <label for="context">שם הספר / התורה (אופציונלי)</label>
+          <input type="text" id="context" placeholder='למשל: ליקוטי מוהר"ן, תורה א'>
+          <div class="hint">נשתמש בזה כדי לשפר את הדיוק בשמות/מונחים (נבנה prompt אוטומטי).</div>
+        </div>
+
+        <!-- שפה: ברירת מחדל עברית -->
+        <label for="language">שפה:</label>
+        <select name="language" id="language">
+          <option value="">Automatic language (slower)</option>
+          <option value="he" selected>Hebrew</option>
+          <option value="en">English</option>
+          <option value="af">Afrikaans</option>
+          <option value="ar">Arabic</option>
+          <option value="hy">Armenian</option>
+          <option value="az">Azerbaijani</option>
+          <option value="be">Belarusian</option>
+          <option value="bs">Bosnian</option>
+          <option value="bg">Bulgarian</option>
+          <option value="ca">Catalan</option>
+          <option value="zh">Chinese</option>
+          <option value="hr">Croatian</option>
+          <option value="cs">Czech</option>
+          <option value="da">Danish</option>
+          <option value="nl">Dutch</option>
+          <option value="et">Estonian</option>
+          <option value="fi">Finnish</option>
+          <option value="fr">French</option>
+          <option value="gl">Galician</option>
+          <option value="de">German</option>
+          <option value="el">Greek</option>
+          <option value="hi">Hindi</option>
+          <option value="hu">Hungarian</option>
+          <option value="is">Icelandic</option>
+          <option value="id">Indonesian</option>
+          <option value="it">Italian</option>
+          <option value="ja">Japanese</option>
+          <option value="kn">Kannada</option>
+          <option value="kk">Kazakh</option>
+          <option value="ko">Korean</option>
+          <option value="lv">Latvian</option>
+          <option value="lt">Lithuanian</option>
+          <option value="mk">Macedonian</option>
+          <option value="ms">Malay</option>
+          <option value="mr">Marathi</option>
+          <option value="mi">Maori</option>
+          <option value="ne">Nepali</option>
+          <option value="no">Norwegian</option>
+          <option value="fa">Persian</option>
+          <option value="pl">Polish</option>
+          <option value="pt">Portuguese</option>
+          <option value="ro">Romanian</option>
+          <option value="ru">Russian</option>
+          <option value="sr">Serbian</option>
+          <option value="sk">Slovak</option>
+          <option value="sl">Slovenian</option>
+          <option value="es">Spanish</option>
+          <option value="sw">Swahili</option>
+          <option value="sv">Swedish</option>
+          <option value="tl">Tagalog</option>
+          <option value="ta">Tamil</option>
+          <option value="th">Thai</option>
+          <option value="tr">Turkish</option>
+          <option value="uk">Ukrainian</option>
+          <option value="ur">Urdu</option>
+          <option value="vi">Vietnamese</option>
+          <option value="cy">Welsh</option>
+        </select>
+
+        <br />
+
+        <label for="response_format">פורמט פלט:</label>
+        <select id="response_format" name="response_format">
+          <option value="verbose_json" selected>Normal text</option>
+          <option value="srt">SRT (כתוביות)</option>
+          <option value="vtt">VTT (כתוביות)</option>
+        </select>
+
+        <br><br>
+
+        <label for="audio-file" class="button">בחר קובץ אודיו</label>
+        <input
+          type="file"
+          accept="audio/mp3, audio/mp4, audio/mpeg, audio/mpga, audio/m4a, audio/wav, audio/webm, video/mp4, video/mpeg, video/webm"
+          id="audio-file"
+          name="file"
+          style="visibility:hidden;"
+        >
+      </form>
+
+      <!-- סטטוס + פלט -->
+      <div id="status" style="margin:12px 0;"></div>
+      <div id="output"></div>
+
+      <footer>
+        <a href="https://platform.openai.com/account/usage" target="_blank" rel="noopener">Your usage</a>
+        &middot;
+        <a href="https://github.com/felixbade/transcribe" target="_blank" rel="noopener">Source code</a>
+        &middot;
+        <a href="https://github.com/felixbade/transcribe/issues" target="_blank" rel="noopener">Feature request</a>
+      </footer>
+    </div>
+  </body>
 </html>
