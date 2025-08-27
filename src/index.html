@@ -19,6 +19,12 @@
             </div>
             <form id="upload-form">
                 <!-- https://platform.openai.com/docs/guides/speech-to-text/supported-languages -->
+                <div class="field">
+  <label for="context">שם הספר / התורה (אופציונלי)</label>
+  <input type="text" id="context" placeholder='למשל: ליקוטי מוהר"ן, תורה א'>
+  <div class="hint">אם תמלא—נבנה אוטומטית הקשר עשיר לשמות/מונחים (משפר דיוק).</div>
+</div>
+
                 <select name="language" id="language">
                     <option value="" selected>Automatic language (slower)</option>
                     <option value="en">English</option>
@@ -41,7 +47,7 @@
                     <option value="gl">Galician</option>
                     <option value="de">German</option>
                     <option value="el">Greek</option>
-                    <option value="he">Hebrew</option>
+                    <option value="he" selected>Hebrew</option>
                     <option value="hi">Hindi</option>
                     <option value="hu">Hungarian</option>
                     <option value="is">Icelandic</option>
